@@ -4,7 +4,7 @@ import { useWorkout } from "../context/WorkoutContext";
 import { calculateLevel } from "../utils/levelSystem";
 import { BodyMap } from "../components/dashboard/BodyMap";
 import { Modal } from "../components/ui/Modal";
-import { ConfirmModal } from "../components/ui/ConfirmModal"; // New Import
+import { ConfirmModal } from "../components/ui/ConfirmModal";
 import {
   startOfWeek,
   addDays,
@@ -42,7 +42,7 @@ export function Dashboard() {
   const [manualTime, setManualTime] = useState("");
   const [showDateStep, setShowDateStep] = useState(false);
   const [logType, setLogType] = useState<"workout" | "rest">("workout");
-  const [formError, setFormError] = useState(""); // For inline errors
+  const [formError, setFormError] = useState("");
 
   // Confirmation Modal State
   const [confirmRestOpen, setConfirmRestOpen] = useState(false);
@@ -124,9 +124,6 @@ export function Dashboard() {
     return Array.from(muscles);
   }, [weeklyWorkouts]);
 
-  const todayHasWorkout = weekDays.find((d) => d.isToday)?.hasWorkout;
-  const todayIsRest = weekDays.find((d) => d.isToday)?.isRest;
-
   const formatDuration = (t: number) => {
     const h = Math.floor(t / 60);
     const m = Math.round(t % 60);
@@ -172,7 +169,6 @@ export function Dashboard() {
     navigate("/workout");
   };
 
-  // Trigger Confirmation Modal
   const initiateRestDay = () => {
     if (!manualDate) {
       setFormError("Please select a date.");
@@ -181,7 +177,6 @@ export function Dashboard() {
     setConfirmRestOpen(true);
   };
 
-  // Actual Action after Confirmation
   const executeRestDay = async () => {
     await markRestDay(manualDate);
     setConfirmRestOpen(false);
@@ -285,6 +280,7 @@ export function Dashboard() {
             </span>
           </div>
 
+          {/* --- MODIFIED LOGIC: Always allow Start/Resume --- */}
           {isWorkoutActive ? (
             <button
               onClick={() => navigate("/workout")}
@@ -292,31 +288,18 @@ export function Dashboard() {
             >
               <Activity className="w-3 h-3 fill-current" /> RESUME
             </button>
-          ) : !todayHasWorkout && !todayIsRest ? (
+          ) : (
             <button
               onClick={() => {
                 setShowStartMenu(true);
                 setShowDateStep(false);
               }}
+              // Removed the 'Complete' state restriction.
+              // This button now always renders if no workout is currently active.
               className="bg-accent text-text-inverted px-5 py-2.5 rounded-xl font-black text-xs flex items-center gap-2 shadow-lg hover:brightness-110 transition-all"
             >
               <Play className="w-3 h-3 fill-current" /> START
             </button>
-          ) : (
-            <div
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl border font-black text-xs uppercase ${
-                todayIsRest
-                  ? "text-success bg-success/10 border-success/20"
-                  : "text-accent bg-accent/10 border-accent/20"
-              }`}
-            >
-              {todayIsRest ? (
-                <Coffee className="w-4 h-4" />
-              ) : (
-                <CheckCircle2 className="w-4 h-4" />
-              )}
-              <span>{todayIsRest ? "Rest Day" : "Complete"}</span>
-            </div>
           )}
         </div>
       </section>

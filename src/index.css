@@ -130,13 +130,13 @@ a {
     }
   }
 
-  /* Utility to hide scrollbar but allow scrolling */
+  /* Utility to force hide scrollbars on specific containers */
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
   .no-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
   }
 
   .fill-body-base {
@@ -154,4 +154,21 @@ a {
     stroke-opacity: 0.2;
     stroke-width: 1px;
   }
+}
+
+/* --- GLOBAL SCROLLBAR HIDE --- */
+/* This allows scrolling (auto) but hides the visual bar (none) */
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+  overflow-y: auto; /* ALLOW scrolling */
+  scrollbar-width: none; /* Firefox: Hide scrollbar */
+  -ms-overflow-style: none; /* IE/Edge: Hide scrollbar */
+}
+
+/* Chrome, Safari, Opera: Hide scrollbar */
+::-webkit-scrollbar {
+  display: none;
 }
