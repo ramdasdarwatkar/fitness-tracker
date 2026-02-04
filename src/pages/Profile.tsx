@@ -118,6 +118,7 @@ export function Profile() {
     target_weight: "",
     target_days_week: "",
   });
+
   const [metrics, setMetrics] = useState({
     weight: "",
     neck: "",
@@ -133,10 +134,10 @@ export function Profile() {
     right_thigh: "",
     left_calf: "",
     right_calf: "",
+    belly: "",
   });
 
   const [loading, setLoading] = useState(false);
-  // FIX: Removed unused 'fetchingMetrics' state
   const [metricsLogId, setMetricsLogId] = useState<number | null>(null);
 
   // --- INIT ---
@@ -153,14 +154,13 @@ export function Profile() {
   }, [userProfile]);
 
   useEffect(() => {
+    // We fetch this ONCE when opening the modal to populate fields
     if (activeModal === "metrics") loadLatestMetrics();
   }, [activeModal]);
 
   // --- DATA LOADING ---
   const loadLatestMetrics = async () => {
     if (!userProfile?.user_id) return;
-
-    // FIX: Removed setFetchingMetrics(true)
 
     const today = format(new Date(), "yyyy-MM-dd");
 
@@ -190,15 +190,20 @@ export function Profile() {
         right_thigh: data.right_thigh?.toString() || "",
         left_calf: data.left_calf?.toString() || "",
         right_calf: data.right_calf?.toString() || "",
+        belly: data.belly?.toString() || "",
       });
-      if (data.log_date === today) setMetricsLogId(data.id);
-      else setMetricsLogId(null);
-    }
 
-    // FIX: Removed setFetchingMetrics(false)
+      // We keep this ONLY for UI feedback ("Editing Today" vs "New Log")
+      if (data.log_date === today) {
+        setMetricsLogId(data.id);
+      } else {
+        setMetricsLogId(null);
+      }
+    }
   };
 
   // --- ACTIONS ---
+
   const handleSaveIdentity = async () => {
     if (!userProfile?.user_id) return;
     setLoading(true);
@@ -231,39 +236,53 @@ export function Profile() {
     }
   };
 
+  // --- OPTIMIZED SAVE (UPSERT) ---
   const handleSaveMetrics = async () => {
     if (!userProfile?.user_id) return;
     setLoading(true);
+
     const today = format(new Date(), "yyyy-MM-dd");
 
     const payload = {
       user_id: userProfile.user_id,
       log_date: today,
-      weight: parseFloat(metrics.weight) || null,
-      neck: parseFloat(metrics.neck) || null,
-      shoulders: parseFloat(metrics.shoulders) || null,
-      chest: parseFloat(metrics.chest) || null,
-      waist: parseFloat(metrics.waist) || null,
-      hips: parseFloat(metrics.hips) || null,
-      left_bicep: parseFloat(metrics.left_bicep) || null,
-      right_bicep: parseFloat(metrics.right_bicep) || null,
-      left_forearm: parseFloat(metrics.left_forearm) || null,
-      right_forearm: parseFloat(metrics.right_forearm) || null,
-      left_thigh: parseFloat(metrics.left_thigh) || null,
-      right_thigh: parseFloat(metrics.right_thigh) || null,
-      left_calf: parseFloat(metrics.left_calf) || null,
-      right_calf: parseFloat(metrics.right_calf) || null,
+      weight: metrics.weight ? parseFloat(metrics.weight) : null,
+      neck: metrics.neck ? parseFloat(metrics.neck) : null,
+      shoulders: metrics.shoulders ? parseFloat(metrics.shoulders) : null,
+      chest: metrics.chest ? parseFloat(metrics.chest) : null,
+      waist: metrics.waist ? parseFloat(metrics.waist) : null,
+      hips: metrics.hips ? parseFloat(metrics.hips) : null,
+      left_bicep: metrics.left_bicep ? parseFloat(metrics.left_bicep) : null,
+      right_bicep: metrics.right_bicep ? parseFloat(metrics.right_bicep) : null,
+      left_forearm: metrics.left_forearm
+        ? parseFloat(metrics.left_forearm)
+        : null,
+      right_forearm: metrics.right_forearm
+        ? parseFloat(metrics.right_forearm)
+        : null,
+      left_thigh: metrics.left_thigh ? parseFloat(metrics.left_thigh) : null,
+      right_thigh: metrics.right_thigh ? parseFloat(metrics.right_thigh) : null,
+      left_calf: metrics.left_calf ? parseFloat(metrics.left_calf) : null,
+      right_calf: metrics.right_calf ? parseFloat(metrics.right_calf) : null,
+      belly: metrics.belly ? parseFloat(metrics.belly) : null,
     };
 
     try {
-      if (metricsLogId)
-        await supabase
-          .from("profile_metrics")
-          .update(payload as any)
-          .eq("id", metricsLogId);
-      else await supabase.from("profile_metrics").insert(payload as any);
+      // THE FIX: UPSERT
+      // "onConflict" tells Supabase: "If user_id AND log_date match an existing row, UPDATE it. Otherwise INSERT."
+      // This completely prevents the Duplicate Key error and removes the need for a prior fetch.
+      const { data: upsertedData, error } = await supabase
+        .from("profile_metrics")
+        .upsert(payload as any, { onConflict: "user_id, log_date" })
+        .select()
+        .single();
 
-      await refreshProfile();
+      if (error) throw error;
+
+      // Update local state id so UI reflects "Editing Today" immediately without reload
+      // @ts-ignore
+      if (upsertedData) setMetricsLogId(upsertedData.id);
+
       setActiveModal(null);
     } catch (err: any) {
       console.error(err);
@@ -511,14 +530,18 @@ export function Profile() {
               onChange={(v) => setMetrics({ ...metrics, waist: v })}
               activeColor={activeColorObj.hex}
             />
-            <div className="col-span-2">
-              <MetricInput
-                label="Hips"
-                value={metrics.hips}
-                onChange={(v) => setMetrics({ ...metrics, hips: v })}
-                activeColor={activeColorObj.hex}
-              />
-            </div>
+            <MetricInput
+              label="Belly"
+              value={metrics.belly}
+              onChange={(v) => setMetrics({ ...metrics, belly: v })}
+              activeColor={activeColorObj.hex}
+            />
+            <MetricInput
+              label="Hips"
+              value={metrics.hips}
+              onChange={(v) => setMetrics({ ...metrics, hips: v })}
+              activeColor={activeColorObj.hex}
+            />
             <div className="col-span-2 h-px bg-border my-1" />
             <MetricInput
               label="L Bicep"

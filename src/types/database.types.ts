@@ -87,6 +87,7 @@ export interface Database {
           left_calf: number | null;
           hips: number | null;
           weight: number;
+          belly: number | null;
         };
         Insert: {
           user_id: string;
@@ -105,6 +106,7 @@ export interface Database {
           left_calf?: number | null;
           hips?: number | null;
           weight: number;
+          belly: number | null;
         };
         Update: {
           user_id?: string;
@@ -123,6 +125,7 @@ export interface Database {
           left_calf?: number | null;
           hips?: number | null;
           weight?: number;
+          belly: number | null;
         };
         Relationships: [
           {

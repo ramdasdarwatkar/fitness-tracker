@@ -5,7 +5,7 @@ import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 
-const logoImg = "/logo.png";
+const logoImg = "/fitness-tracker/logo.png";
 
 export function Login() {
   const { user } = useAuth();

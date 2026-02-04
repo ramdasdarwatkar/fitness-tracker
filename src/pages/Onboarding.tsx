@@ -15,7 +15,7 @@ import { useData } from "../context/DataContext";
 import { VerticalHeightRuler } from "../components/onboarding/VerticalHeightRuler";
 import { HorizontalWeightScale } from "../components/onboarding/HorizontalWeightScale";
 
-const maleSvg = "/male.svg";
+const maleSvg = "/fitness-tracker/male.svg";
 
 // --- LOCAL ALERT MODAL ---
 const AlertModal = ({

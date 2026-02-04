@@ -30,19 +30,20 @@ interface MetricOption {
 // TS will now yell if 'id' doesn't match a column in your DB
 const METRIC_OPTIONS: MetricOption[] = [
   { id: "weight", label: "Body Weight", unit: "kg" },
-  { id: "neck", label: "Neck", unit: "cm" },
-  { id: "shoulders", label: "Shoulders", unit: "cm" },
-  { id: "chest", label: "Chest", unit: "cm" },
-  { id: "waist", label: "Waist", unit: "cm" },
-  { id: "hips", label: "Hips", unit: "cm" },
-  { id: "left_bicep", label: "Left Bicep", unit: "cm" },
-  { id: "right_bicep", label: "Right Bicep", unit: "cm" },
-  { id: "left_forearm", label: "Left Forearm", unit: "cm" },
-  { id: "right_forearm", label: "Right Forearm", unit: "cm" },
-  { id: "left_thigh", label: "Left Thigh", unit: "cm" },
-  { id: "right_thigh", label: "Right Thigh", unit: "cm" },
-  { id: "left_calf", label: "Left Calf", unit: "cm" },
-  { id: "right_calf", label: "Right Calf", unit: "cm" },
+  { id: "neck", label: "Neck", unit: "in" },
+  { id: "shoulders", label: "Shoulders", unit: "in" },
+  { id: "chest", label: "Chest", unit: "in" },
+  { id: "waist", label: "Waist", unit: "in" },
+  { id: "hips", label: "Hips", unit: "in" },
+  { id: "left_bicep", label: "Left Bicep", unit: "in" },
+  { id: "right_bicep", label: "Right Bicep", unit: "in" },
+  { id: "left_forearm", label: "Left Forearm", unit: "in" },
+  { id: "right_forearm", label: "Right Forearm", unit: "in" },
+  { id: "left_thigh", label: "Left Thigh", unit: "in" },
+  { id: "right_thigh", label: "Right Thigh", unit: "in" },
+  { id: "left_calf", label: "Left Calf", unit: "in" },
+  { id: "right_calf", label: "Right Calf", unit: "in" },
+  { id: "belly", label: "Belly", unit: "in" },
 ];
 
 type TimeRange = "1M" | "3M" | "6M" | "1Y" | "ALL";
@@ -107,7 +108,7 @@ export function Progress() {
 
   const selectedUnit = useMemo(() => {
     if (selectedType === "metric")
-      return METRIC_OPTIONS.find((m) => m.id === selectedId)?.unit || "cm";
+      return METRIC_OPTIONS.find((m) => m.id === selectedId)?.unit || "in";
     return "kg";
   }, [selectedType, selectedId]);
 
