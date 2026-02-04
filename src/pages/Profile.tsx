@@ -824,7 +824,7 @@ const MetricInput = ({
         className="w-full bg-transparent text-center font-black text-text-main focus:outline-none text-lg p-0"
         placeholder="-"
       />
-      <span className="text-[8px] text-text-muted pb-1">cm</span>
+      <span className="text-[8px] text-text-muted pb-1">in</span>
     </div>
   </div>
 );
