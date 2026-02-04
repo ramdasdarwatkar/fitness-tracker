@@ -27,7 +27,25 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-// --- LOCAL ALERT MODAL ---
+// --- HELPERS ---
+
+const safeParse = (val: string): number | null => {
+  if (!val || val.trim() === "") return null;
+  const num = parseFloat(val);
+  return isNaN(num) ? null : num;
+};
+
+// --- LOCAL TYPES ---
+interface MetricLogResult {
+  id: number;
+  user_id: string;
+  log_date: string;
+  weight?: number;
+  [key: string]: any;
+}
+
+// --- COMPONENTS ---
+
 const AlertModal = ({
   isOpen,
   onClose,
@@ -91,7 +109,8 @@ interface MetricInputProps {
 
 export function Profile() {
   const { signOut } = useAuth();
-  const { userProfile, refreshProfile } = useData();
+  // @ts-ignore - Assuming setUserProfile is available in Context
+  const { userProfile, setUserProfile, refreshProfile } = useData();
   const navigate = useNavigate();
 
   const { theme, setTheme, accentColor, setAccentColor, activeColorObj } =
@@ -102,7 +121,6 @@ export function Profile() {
     "details" | "metrics" | "level" | "theme" | null
   >(null);
 
-  // Modal States
   const [isSignOutModalOpen, setIsSignOutModalOpen] = useState(false);
   const [alertConfig, setAlertConfig] = useState({
     isOpen: false,
@@ -154,7 +172,6 @@ export function Profile() {
   }, [userProfile]);
 
   useEffect(() => {
-    // We fetch this ONCE when opening the modal to populate fields
     if (activeModal === "metrics") loadLatestMetrics();
   }, [activeModal]);
 
@@ -164,7 +181,7 @@ export function Profile() {
 
     const today = format(new Date(), "yyyy-MM-dd");
 
-    const { data: rawData } = await supabase
+    const { data } = await supabase
       .from("profile_metrics")
       .select("*")
       .eq("user_id", userProfile.user_id)
@@ -172,30 +189,30 @@ export function Profile() {
       .limit(1)
       .maybeSingle();
 
-    const data = rawData as any;
+    // Use local interface to safely access .id
+    const record = data as unknown as MetricLogResult;
 
-    if (data) {
+    if (record) {
       setMetrics({
-        weight: data.weight?.toString() || "",
-        neck: data.neck?.toString() || "",
-        shoulders: data.shoulders?.toString() || "",
-        chest: data.chest?.toString() || "",
-        waist: data.waist?.toString() || "",
-        hips: data.hips?.toString() || "",
-        left_bicep: data.left_bicep?.toString() || "",
-        right_bicep: data.right_bicep?.toString() || "",
-        left_forearm: data.left_forearm?.toString() || "",
-        right_forearm: data.right_forearm?.toString() || "",
-        left_thigh: data.left_thigh?.toString() || "",
-        right_thigh: data.right_thigh?.toString() || "",
-        left_calf: data.left_calf?.toString() || "",
-        right_calf: data.right_calf?.toString() || "",
-        belly: data.belly?.toString() || "",
+        weight: record.weight?.toString() || "",
+        neck: record.neck?.toString() || "",
+        shoulders: record.shoulders?.toString() || "",
+        chest: record.chest?.toString() || "",
+        waist: record.waist?.toString() || "",
+        hips: record.hips?.toString() || "",
+        left_bicep: record.left_bicep?.toString() || "",
+        right_bicep: record.right_bicep?.toString() || "",
+        left_forearm: record.left_forearm?.toString() || "",
+        right_forearm: record.right_forearm?.toString() || "",
+        left_thigh: record.left_thigh?.toString() || "",
+        right_thigh: record.right_thigh?.toString() || "",
+        left_calf: record.left_calf?.toString() || "",
+        right_calf: record.right_calf?.toString() || "",
+        belly: record.belly?.toString() || "",
       });
 
-      // We keep this ONLY for UI feedback ("Editing Today" vs "New Log")
-      if (data.log_date === today) {
-        setMetricsLogId(data.id);
+      if (record.log_date === today) {
+        setMetricsLogId(record.id);
       } else {
         setMetricsLogId(null);
       }
@@ -211,18 +228,25 @@ export function Profile() {
       const updates = {
         name: identity.name,
         birth_date: identity.birth_date || null,
-        height: parseFloat(identity.height) || null,
-        target_weight: parseFloat(identity.target_weight) || null,
+        height: safeParse(identity.height),
+        target_weight: safeParse(identity.target_weight),
         target_days_week: parseInt(identity.target_days_week) || 5,
-        updated_at: new Date().toISOString(),
       };
 
-      await supabase
+      const { error } = await supabase
         .from("user_profile")
+        // FIX: Cast to any to prevent TS error about exact type match (number vs string parsing)
         .update(updates as any)
         .eq("user_id", userProfile.user_id);
 
-      await refreshProfile();
+      if (error) throw error;
+
+      if (setUserProfile) {
+        setUserProfile({ ...userProfile, ...updates });
+      } else {
+        await refreshProfile();
+      }
+
       setActiveModal(null);
     } catch (err: any) {
       console.error(err);
@@ -236,7 +260,6 @@ export function Profile() {
     }
   };
 
-  // --- OPTIMIZED SAVE (UPSERT) ---
   const handleSaveMetrics = async () => {
     if (!userProfile?.user_id) return;
     setLoading(true);
@@ -246,42 +269,36 @@ export function Profile() {
     const payload = {
       user_id: userProfile.user_id,
       log_date: today,
-      weight: metrics.weight ? parseFloat(metrics.weight) : null,
-      neck: metrics.neck ? parseFloat(metrics.neck) : null,
-      shoulders: metrics.shoulders ? parseFloat(metrics.shoulders) : null,
-      chest: metrics.chest ? parseFloat(metrics.chest) : null,
-      waist: metrics.waist ? parseFloat(metrics.waist) : null,
-      hips: metrics.hips ? parseFloat(metrics.hips) : null,
-      left_bicep: metrics.left_bicep ? parseFloat(metrics.left_bicep) : null,
-      right_bicep: metrics.right_bicep ? parseFloat(metrics.right_bicep) : null,
-      left_forearm: metrics.left_forearm
-        ? parseFloat(metrics.left_forearm)
-        : null,
-      right_forearm: metrics.right_forearm
-        ? parseFloat(metrics.right_forearm)
-        : null,
-      left_thigh: metrics.left_thigh ? parseFloat(metrics.left_thigh) : null,
-      right_thigh: metrics.right_thigh ? parseFloat(metrics.right_thigh) : null,
-      left_calf: metrics.left_calf ? parseFloat(metrics.left_calf) : null,
-      right_calf: metrics.right_calf ? parseFloat(metrics.right_calf) : null,
-      belly: metrics.belly ? parseFloat(metrics.belly) : null,
+      weight: safeParse(metrics.weight),
+      neck: safeParse(metrics.neck),
+      shoulders: safeParse(metrics.shoulders),
+      chest: safeParse(metrics.chest),
+      waist: safeParse(metrics.waist),
+      hips: safeParse(metrics.hips),
+      left_bicep: safeParse(metrics.left_bicep),
+      right_bicep: safeParse(metrics.right_bicep),
+      left_forearm: safeParse(metrics.left_forearm),
+      right_forearm: safeParse(metrics.right_forearm),
+      left_thigh: safeParse(metrics.left_thigh),
+      right_thigh: safeParse(metrics.right_thigh),
+      left_calf: safeParse(metrics.left_calf),
+      right_calf: safeParse(metrics.right_calf),
+      belly: safeParse(metrics.belly),
     };
 
     try {
-      // THE FIX: UPSERT
-      // "onConflict" tells Supabase: "If user_id AND log_date match an existing row, UPDATE it. Otherwise INSERT."
-      // This completely prevents the Duplicate Key error and removes the need for a prior fetch.
-      const { data: upsertedData, error } = await supabase
+      const { data, error } = await supabase
         .from("profile_metrics")
+        // FIX: Cast to any to allow safeParse results (number | null) to pass strict checking
         .upsert(payload as any, { onConflict: "user_id, log_date" })
         .select()
         .single();
 
       if (error) throw error;
 
-      // Update local state id so UI reflects "Editing Today" immediately without reload
-      // @ts-ignore
-      if (upsertedData) setMetricsLogId(upsertedData.id);
+      // Use local interface casting to handle return type safely
+      const record = data as unknown as MetricLogResult;
+      if (record) setMetricsLogId(record.id);
 
       setActiveModal(null);
     } catch (err: any) {
@@ -306,16 +323,28 @@ export function Profile() {
         userProfile.level_calculation_date || null,
         userProfile.target_days_week || 5,
       );
+
+      const updates = {
+        level: result.newTotalPoints,
+        level_calculation_date: result.calcDate,
+      };
+
       const { error } = await supabase
         .from("user_profile")
-        .update({
-          level: result.newTotalPoints,
-          level_calculation_date: result.calcDate,
-        } as any)
+        .update(updates)
         .eq("user_id", userProfile.user_id);
 
       if (error) throw error;
-      await refreshProfile();
+
+      if (setUserProfile) {
+        setUserProfile({
+          ...userProfile,
+          level_points: updates.level,
+          level_calculation_date: updates.level_calculation_date,
+        });
+      } else {
+        await refreshProfile();
+      }
     } catch (err: any) {
       console.error("Level sync failed", err);
       setAlertConfig({
@@ -824,7 +853,7 @@ const MetricInput = ({
         className="w-full bg-transparent text-center font-black text-text-main focus:outline-none text-lg p-0"
         placeholder="-"
       />
-      <span className="text-[8px] text-text-muted pb-1">in</span>
+      <span className="text-[8px] text-text-muted pb-1">cm</span>
     </div>
   </div>
 );
